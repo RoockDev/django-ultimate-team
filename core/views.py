@@ -117,3 +117,36 @@ def actualizar_carta(request, carta_id):
 
    return JsonResponse({'error': 'Este endpoint no soporta peticiones PUT'},status=405)
 
+# PATCH Updatear carta campos específicos
+@csrf_exempt
+def actualizar_campos_especificos_carta(request, carta_id):
+    if request.method == 'PATCH':
+        try:
+            carta = Carta_jugador.objects.get(pk=carta_id)
+            datos = json.loads(request.body)
+
+            carta.nombre = datos.get('nombre', carta.nombre)
+            carta.posicion = datos.get('posicion', carta.posicion)
+            carta.ritmo = datos.get('ritmo', carta.ritmo)
+            carta.tiro = datos.get('tiro', carta.tiro)
+            carta.pase = datos.get('pase', carta.pase)
+            carta.regate = datos.get('regate', carta.regate)
+            carta.defensa = datos.get('defensa', carta.defensa)
+            carta.fisico = datos.get('fisico', carta.fisico)
+
+            if 'club_id' in datos:
+                carta.club = Club.objects.get(pk=datos['club_id'])
+            if 'pais_id' in datos:
+                carta.pais = Pais.objects.get(pk=datos['pais_id'])
+            if 'liga_id' in datos:
+                carta.liga = Liga.objects.get(pk=datos['liga_id'])
+
+            carta.save()
+
+            return JsonResponse({'mensaje': 'Carta actualizada con exito'})
+        except Carta_jugador.DoesNotExist:
+            return JsonResponse({"mensaje": "La carta no existe"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones PATCH'})
