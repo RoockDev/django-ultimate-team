@@ -60,6 +60,7 @@ class Carta_jugador(models.Model):
     liga = models.ForeignKey(Liga,on_delete=models.CASCADE,null=False)
     club = models.ForeignKey(Club,on_delete=models.CASCADE,null=False)
     activo = models.BooleanField(default=True)
+    puntuacion_total = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],verbose_name="Puntuación General")
 
     def __str__(self):
         return self.nombre
