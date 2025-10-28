@@ -83,3 +83,37 @@ def crear_carta(request):
 
     return JsonResponse({"error": "Este endpoint solo soporta peticiones POST"},status=405)
 
+
+#PUT updatear carta
+@csrf_exempt
+def actualizar_carta(request, carta_id):
+   if request.method == 'PUT':
+       try:
+           carta = Carta_jugador.objects.get(pk=carta_id)
+           datos = json.loads(request.body)
+
+           club = Club.objects.get(pk=datos['club_id'])
+           liga = Liga.objects.get(pk=datos['liga_id'])
+           pais = Pais.objects.get(pk=datos['pais_id'])
+
+           carta.nombre = datos['nombre']
+           carta.posicion = datos['posicion']
+           carta.ritmo = datos['ritmo']
+           carta.tiro = datos['tiro']
+           carta.pase = datos['pase']
+           carta.regate = datos['regate']
+           carta.defensa = datos['defensa']
+           carta.fisico = datos['fisico']
+           carta.club = club
+           carta.pais = pais
+           carta.liga = liga
+           carta.save()
+
+           return JsonResponse({"mensaje": "Carta actualizada con exito"})
+       except Carta_jugador.DoesNotExist:
+           return JsonResponse({'mensaje': 'La carta no existe'},status=404)
+       except Exception as e:
+           return JsonResponse({'error': str(e)},status=400)
+
+   return JsonResponse({'error': 'Este endpoint no soporta peticiones PUT'},status=405)
+
