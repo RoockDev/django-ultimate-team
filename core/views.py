@@ -150,3 +150,19 @@ def actualizar_campos_especificos_carta(request, carta_id):
             return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({'error': 'Este endpoint solo soporta peticiones PATCH'})
+
+# DELETE borrado lógico de carta
+@csrf_exempt
+def borrar_carta(request, carta_id):
+    if request.method == 'DELETE':
+        try:
+            carta = Carta_jugador.objects.get(pk=carta_id)
+            carta.activo = False
+            carta.save()
+            return JsonResponse({'mensaje': 'Carta desactivada con exito'})
+        except Carta_jugador.DoesNotExist:
+            return JsonResponse({'mensaje': 'La carta no existe'},status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(3)},status=400)
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'})
