@@ -34,7 +34,7 @@ class Usuario(models.Model):
 
     def __str__(self):
         return self.username
-
+VALIDADORES_STATS = [MinValueValidator(1), MaxValueValidator(99)]
 class Carta_jugador(models.Model):
 
     POSICIONES = [
@@ -51,12 +51,12 @@ class Carta_jugador(models.Model):
     nombre = models.CharField(max_length=100,verbose_name="Nombre Jugador", null=False)
     pais = models.ForeignKey(Pais,on_delete=models.CASCADE,null=False)
     posicion = models.CharField(max_length=3, choices=POSICIONES,verbose_name="Posicion")
-    ritmo = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Ritmo")
-    tiro = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Tiro")
-    pase = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Pase")
-    regate = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Regate")
-    defensa = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Defensa")
-    fisico = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Físico")
+    ritmo = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Ritmo")
+    tiro = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Tiro")
+    pase = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Pase")
+    regate = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Regate")
+    defensa = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Defensa")
+    fisico = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Físico")
     liga = models.ForeignKey(Liga,on_delete=models.CASCADE,null=False)
     club = models.ForeignKey(Club,on_delete=models.CASCADE,null=False)
     activo = models.BooleanField(default=True)
@@ -64,6 +64,20 @@ class Carta_jugador(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class Atributos_portero(models.Model):
+    carta = models.OneToOneField('Carta_jugador', on_delete=models.CASCADE, primary_key=True,verbose_name="Carta de Jugador")
+    salto = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Salto")
+    parada = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Parada")
+    saque = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Saque")
+    reflejos = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Reflejos")
+    velocidad = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Velocidad Portero")
+    posicionamiento = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Posicionamiento Portero")
+
+    def __str__(self):
+     return f"Atributos de Portero para {self.carta.nombre}"
+
 
 class Equipo_usuario(models.Model):
     usuario = models.ForeignKey(Usuario,on_delete=models.CASCADE,null=False)
