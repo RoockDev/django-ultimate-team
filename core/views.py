@@ -166,3 +166,19 @@ def borrar_carta(request, carta_id):
             return JsonResponse({'error': str(3)},status=400)
 
     return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'})
+
+def listar_usuarios(request):
+    usuarios = list(Usuario.objects.values(
+        'id',
+        'username',
+        'email',
+        'nombre',
+        'apellidos',
+        'fecha_nacimiento'
+    ))
+
+    if usuarios:
+        return JsonResponse(usuarios, safe=False)
+    else:
+        return JsonResponse({'mensaje': 'No se encontraron usuarios'})
+
