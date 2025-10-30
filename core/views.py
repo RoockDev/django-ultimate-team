@@ -182,3 +182,18 @@ def listar_usuarios(request):
     else:
         return JsonResponse({'mensaje': 'No se encontraron usuarios'})
 
+
+def obtener_usuario_id(request, usuario_id):
+    try:
+        usuario = Usuario.objects.get(pk=usuario_id)
+        datos = {
+            'id': usuario.id,
+            'username': usuario.username,
+            'email': usuario.email,
+            'nombre': usuario.nombre,
+            'apellidos': usuario.apellidos,
+            'fecha_nacimiento': usuario.fecha_nacimiento,
+        }
+        return JsonResponse(datos)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)

@@ -11,4 +11,5 @@ urlpatterns = [
    path('cartas/actualizar_especifica/<int:carta_id>/',views.actualizar_campos_especificos_carta),
    path('cartas/borrar/<int:carta_id>/',views.borrar_carta),
    path('usuarios/', views.listar_usuarios),
+   path('usuarios/<int:usuario_id>/', views.obtener_usuario_id),
 ]
