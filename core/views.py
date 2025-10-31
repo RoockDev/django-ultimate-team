@@ -3,6 +3,7 @@ import json
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
 
 from .models import *
 
@@ -197,3 +198,32 @@ def obtener_usuario_id(request, usuario_id):
         return JsonResponse(datos)
     except Usuario.DoesNotExist:
         return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)
+
+
+
+@csrf_exempt
+def crear_usuario(request):
+    if request.method == 'POST':
+        try:
+            datos = json.loads(request.body)
+
+            if 'password' not in datos or not datos['password']:
+                return JsonResponse({"error": "La contraseña es obligatoria"}, status=400)
+
+            hashed_password = make_password(datos['password'])
+
+            nuevo_usuario = Usuario.objects.create(
+                username=datos['username'],
+                email=datos['email'],
+                password=hashed_password,
+                nombre=datos.get('nombre', ''),
+                apellidos=datos.get('apellidos', ''),
+                fecha_nacimiento=datos.get('fecha_nacimiento', None)
+            )
+
+            return JsonResponse({"mensaje": "Usuario creado con éxito", "id": nuevo_usuario.id}, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Este endpoint solo soporta peticiones POST"}, status=405)
+

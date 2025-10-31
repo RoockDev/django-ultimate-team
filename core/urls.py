@@ -12,4 +12,5 @@ urlpatterns = [
    path('cartas/borrar/<int:carta_id>/',views.borrar_carta),
    path('usuarios/', views.listar_usuarios),
    path('usuarios/<int:usuario_id>/', views.obtener_usuario_id),
+   path('usuarios/crear/', views.crear_usuario)
 ]
