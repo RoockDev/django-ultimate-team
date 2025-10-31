@@ -252,3 +252,30 @@ def actualizar_usuario(request, usuario_id):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Este endpoint no soporta peticiones PUT'}, status=405)
+
+@csrf_exempt
+def actualizar_campos_especificos_usuario(request, usuario_id):
+    if request.method == 'PATCH':
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
+            datos = json.loads(request.body)
+
+            usuario.username = datos.get('username', usuario.username)
+            usuario.email = datos.get('email', usuario.email)
+            usuario.nombre = datos.get('nombre', usuario.nombre)
+            usuario.apellidos = datos.get('apellidos', usuario.apellidos)
+            usuario.fecha_nacimiento = datos.get('fecha_nacimiento', usuario.fecha_nacimiento)
+
+            if 'password' in datos and datos['password']:
+                usuario.password = make_password(datos['password'])
+
+            usuario.save()
+
+            return JsonResponse({'mensaje': 'Usuario actualizado con éxito'})
+        except Usuario.DoesNotExist:
+            return JsonResponse({"mensaje": "El usuario no existe"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones PATCH'}, status=405)
+

@@ -14,4 +14,5 @@ urlpatterns = [
    path('usuarios/<int:usuario_id>/', views.obtener_usuario_id),
    path('usuarios/crear/', views.crear_usuario),
    path('usuarios/actualizar/<int:usuario_id>/', views.actualizar_usuario),
+   path('usuarios/actualizar_especifica/<int:usuario_id>/', views.actualizar_campos_especificos_usuario),
 ]
