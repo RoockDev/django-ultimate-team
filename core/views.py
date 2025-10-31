@@ -279,3 +279,18 @@ def actualizar_campos_especificos_usuario(request, usuario_id):
 
     return JsonResponse({'error': 'Este endpoint solo soporta peticiones PATCH'}, status=405)
 
+@csrf_exempt
+def borrar_usuario(request, usuario_id):
+    if request.method == 'DELETE':
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
+
+            usuario.delete()
+
+            return JsonResponse({'mensaje': 'Usuario eliminado (físicamente) con éxito'})
+        except Usuario.DoesNotExist:
+            return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'}, status=405)
