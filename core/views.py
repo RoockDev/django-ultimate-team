@@ -3,6 +3,7 @@ import json
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import make_password
 
 from .models import *
 
@@ -166,3 +167,130 @@ def borrar_carta(request, carta_id):
             return JsonResponse({'error': str(3)},status=400)
 
     return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'})
+
+def listar_usuarios(request):
+    usuarios = list(Usuario.objects.values(
+        'id',
+        'username',
+        'email',
+        'nombre',
+        'apellidos',
+        'fecha_nacimiento'
+    ))
+
+    if usuarios:
+        return JsonResponse(usuarios, safe=False)
+    else:
+        return JsonResponse({'mensaje': 'No se encontraron usuarios'})
+
+
+def obtener_usuario_id(request, usuario_id):
+    try:
+        usuario = Usuario.objects.get(pk=usuario_id)
+        datos = {
+            'id': usuario.id,
+            'username': usuario.username,
+            'email': usuario.email,
+            'nombre': usuario.nombre,
+            'apellidos': usuario.apellidos,
+            'fecha_nacimiento': usuario.fecha_nacimiento,
+        }
+        return JsonResponse(datos)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)
+
+
+
+@csrf_exempt
+def crear_usuario(request):
+    if request.method == 'POST':
+        try:
+            datos = json.loads(request.body)
+
+            if 'password' not in datos or not datos['password']:
+                return JsonResponse({"error": "La contraseña es obligatoria"}, status=400)
+
+            hashed_password = make_password(datos['password'])
+
+            nuevo_usuario = Usuario.objects.create(
+                username=datos['username'],
+                email=datos['email'],
+                password=hashed_password,
+                nombre=datos.get('nombre', ''),
+                apellidos=datos.get('apellidos', ''),
+                fecha_nacimiento=datos.get('fecha_nacimiento', None)
+            )
+
+            return JsonResponse({"mensaje": "Usuario creado con éxito", "id": nuevo_usuario.id}, status=201)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"error": "Este endpoint solo soporta peticiones POST"}, status=405)
+
+@csrf_exempt
+def actualizar_usuario(request, usuario_id):
+    if request.method == 'PUT':
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
+            datos = json.loads(request.body)
+
+            usuario.username = datos['username']
+            usuario.email = datos['email']
+            usuario.nombre = datos.get('nombre', usuario.nombre)
+            usuario.apellidos = datos.get('apellidos', usuario.apellidos)
+            usuario.fecha_nacimiento = datos.get('fecha_nacimiento', usuario.fecha_nacimiento)
+
+            if 'password' in datos and datos['password']:
+                usuario.password = make_password(datos['password'])
+
+            usuario.save()
+
+            return JsonResponse({"mensaje": "Usuario actualizado con éxito"})
+        except Usuario.DoesNotExist:
+            return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Este endpoint no soporta peticiones PUT'}, status=405)
+
+@csrf_exempt
+def actualizar_campos_especificos_usuario(request, usuario_id):
+    if request.method == 'PATCH':
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
+            datos = json.loads(request.body)
+
+            usuario.username = datos.get('username', usuario.username)
+            usuario.email = datos.get('email', usuario.email)
+            usuario.nombre = datos.get('nombre', usuario.nombre)
+            usuario.apellidos = datos.get('apellidos', usuario.apellidos)
+            usuario.fecha_nacimiento = datos.get('fecha_nacimiento', usuario.fecha_nacimiento)
+
+            if 'password' in datos and datos['password']:
+                usuario.password = make_password(datos['password'])
+
+            usuario.save()
+
+            return JsonResponse({'mensaje': 'Usuario actualizado con éxito'})
+        except Usuario.DoesNotExist:
+            return JsonResponse({"mensaje": "El usuario no existe"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones PATCH'}, status=405)
+
+@csrf_exempt
+def borrar_usuario(request, usuario_id):
+    if request.method == 'DELETE':
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
+
+            usuario.delete()
+
+            return JsonResponse({'mensaje': 'Usuario eliminado (físicamente) con éxito'})
+        except Usuario.DoesNotExist:
+            return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'}, status=405)
