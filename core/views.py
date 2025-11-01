@@ -67,12 +67,23 @@ def crear_carta(request):
             nueva_carta = Carta_jugador.objects.create(
                 nombre = datos['nombre'],
                 posicion = datos['posicion'],
-                ritmo = datos['ritmo'],
-                tiro = datos['tiro'],
-                pase = datos['pase'],
-                regate = datos['regate'],
-                defensa = datos['defensa'],
-                fisico = datos['fisico'],
+                #Atributos de campo
+                ritmo = datos.get('ritmo',30),
+                tiro = datos.get('tiro',30),
+                pase = datos.get('pase',30),
+                regate = datos.get('regate',30),
+                defensa = datos.get('defensa',30),
+                fisico = datos.get('fisico',30),
+
+
+                #Atributos portero
+                salto = datos.get('salto',30),
+                parada = datos.get('parada',30),
+                saque = datos.get('saque',30),
+                reflejos = datos.get('reflejos',30),
+                velocidad = datos.get('velocidad',30),
+                posicionamiento = datos.get('posicionamiento',30),
+
                 club = club,
                 pais = pais,
                 liga = liga

@@ -56,12 +56,22 @@ class Carta_jugador(models.Model):
     nombre = models.CharField(max_length=100,verbose_name="Nombre Jugador", null=False)
     pais = models.ForeignKey(Pais,on_delete=models.CASCADE,null=False)
     posicion = models.CharField(max_length=3, choices=POSICIONES,verbose_name="Posicion")
-    ritmo = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Ritmo")
-    tiro = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Tiro")
-    pase = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Pase")
-    regate = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Regate")
-    defensa = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Defensa")
-    fisico = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Físico")
+    # Atributos de campo
+    ritmo = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Ritmo",default=30)
+    tiro = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Tiro",default=30)
+    pase = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Pase",default=30)
+    regate = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Regate",default=30)
+    defensa = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Defensa",default=30)
+    fisico = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Físico",default=30)
+
+    # Atributos de portero
+    salto = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Salto",default=30)
+    parada = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Parada",default=30)
+    saque = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Saque",default=30)
+    reflejos = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Reflejos",default=30)
+    velocidad = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Velocidad Portero",default=30)
+    posicionamiento = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Posicionamiento Portero",default=30)
+
     liga = models.ForeignKey(Liga,on_delete=models.CASCADE,null=False)
     club = models.ForeignKey(Club,on_delete=models.CASCADE,null=False)
     activo = models.BooleanField(default=True)
@@ -75,26 +85,30 @@ class Carta_jugador(models.Model):
     def calcular_valoracion_base(self):
         if self.posicion == 'POR':
 
-                atributos_por = self.atributos_portero
 
-                stats_relevantes = [
-                    atributos_por.salto,
-                    atributos_por.parada,
-                    atributos_por.saque,
-                    atributos_por.reflejos,
-                    atributos_por.velocidad,
-                    atributos_por.posicionamiento
-                ]
-                media_base = sum(stats_relevantes) / len(stats_relevantes)
+
+                stats_relevantes = [self.salto,self.parada,self.saque,self.reflejos,self.velocidad,self.posicionamiento]
+
         else:
             stats_relevantes = [self.ritmo, self.tiro, self.pase, self.regate, self.defensa, self.fisico]
-            media_base = sum(stats_relevantes) / len(stats_relevantes)
-            return round(media_base)
+
+        if not stats_relevantes:
+            return 0
+        media_base = sum(stats_relevantes)/len(stats_relevantes)
+        return round(media_base)
 
     def calcular_bonificacion(self):
 
         bonificacion = 0
-        stats_totales = [self.ritmo, self.tiro, self.pase, self.regate, self.defensa, self.fisico]
+        if self.posicion == 'POR':
+
+
+
+            stats_totales = [self.salto, self.parada, self.saque, self.reflejos, self.velocidad,
+                                self.posicionamiento]
+
+        else:
+            stats_totales = [self.ritmo, self.tiro, self.pase, self.regate, self.defensa, self.fisico]
 
         for stat in stats_totales:
             if stat > 95:
