@@ -35,6 +35,11 @@ class Usuario(models.Model):
     def __str__(self):
         return self.username
 
+
+
+VALIDADORES_STATS = [MinValueValidator(1), MaxValueValidator(99)]
+
+
 class Carta_jugador(models.Model):
 
     POSICIONES = [
@@ -51,18 +56,91 @@ class Carta_jugador(models.Model):
     nombre = models.CharField(max_length=100,verbose_name="Nombre Jugador", null=False)
     pais = models.ForeignKey(Pais,on_delete=models.CASCADE,null=False)
     posicion = models.CharField(max_length=3, choices=POSICIONES,verbose_name="Posicion")
-    ritmo = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Ritmo")
-    tiro = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Tiro")
-    pase = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Pase")
-    regate = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Regate")
-    defensa = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Defensa")
-    fisico = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],null=False,verbose_name="Físico")
+    # Atributos de campo
+    ritmo = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Ritmo",default=30)
+    tiro = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Tiro",default=30)
+    pase = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Pase",default=30)
+    regate = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Regate",default=30)
+    defensa = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Defensa",default=30)
+    fisico = models.IntegerField(validators=VALIDADORES_STATS,null=False,verbose_name="Físico",default=30)
+
+    # Atributos de portero
+    salto = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Salto",default=30)
+    parada = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Parada",default=30)
+    saque = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Saque",default=30)
+    reflejos = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Reflejos",default=30)
+    velocidad = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Velocidad Portero",default=30)
+    posicionamiento = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Posicionamiento Portero",default=30)
+
     liga = models.ForeignKey(Liga,on_delete=models.CASCADE,null=False)
     club = models.ForeignKey(Club,on_delete=models.CASCADE,null=False)
     activo = models.BooleanField(default=True)
+    puntuacion_total = models.IntegerField(validators=[MinValueValidator(1),MaxValueValidator(99)],verbose_name="Puntuación General")
+
+
 
     def __str__(self):
         return self.nombre
+
+    def calcular_valoracion_base(self):
+        if self.posicion == 'POR':
+
+
+
+                stats_relevantes = [self.salto,self.parada,self.saque,self.reflejos,self.velocidad,self.posicionamiento]
+
+        else:
+            stats_relevantes = [self.ritmo, self.tiro, self.pase, self.regate, self.defensa, self.fisico]
+
+        if not stats_relevantes:
+            return 0
+        media_base = sum(stats_relevantes)/len(stats_relevantes)
+        return round(media_base)
+
+    def calcular_bonificacion(self):
+
+        bonificacion = 0
+        if self.posicion == 'POR':
+
+
+
+            stats_totales = [self.salto, self.parada, self.saque, self.reflejos, self.velocidad,
+                                self.posicionamiento]
+
+        else:
+            stats_totales = [self.ritmo, self.tiro, self.pase, self.regate, self.defensa, self.fisico]
+
+        for stat in stats_totales:
+            if stat > 95:
+                bonificacion += 4
+            elif stat > 90:
+                bonificacion += 3
+            elif stat > 80:
+                bonificacion += 2
+            elif stat >= 50:
+                bonificacion += 1
+            else:
+                bonificacion -= 1
+
+        return bonificacion
+
+    def save(self, *args, **kwargs):
+
+        puntuacion_base = self.calcular_valoracion_base()
+        bonificacion = self.calcular_bonificacion()
+
+        puntuacion_final = puntuacion_base + bonificacion
+
+        if puntuacion_final > 99:
+            puntuacion_final = 99
+        elif puntuacion_final < 50:
+            puntuacion_final = 50
+
+        self.puntuacion_total = puntuacion_final
+        super().save(*args, **kwargs)
+
+
+
 
 class Equipo_usuario(models.Model):
     usuario = models.ForeignKey(Usuario,on_delete=models.CASCADE,null=False)
