@@ -38,17 +38,6 @@ class Usuario(models.Model):
 
 
 VALIDADORES_STATS = [MinValueValidator(1), MaxValueValidator(99)]
-class Atributos_portero(models.Model):
-    carta = models.OneToOneField('Carta_jugador', on_delete=models.CASCADE, primary_key=True,verbose_name="Carta de Jugador")
-    salto = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Salto")
-    parada = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Parada")
-    saque = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Saque")
-    reflejos = models.IntegerField(validators=VALIDADORES_STATS, verbose_name="Reflejos")
-    velocidad = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Velocidad Portero")
-    posicionamiento = models.IntegerField(validators=VALIDADORES_STATS,verbose_name="Posicionamiento Portero")
-
-    def __str__(self):
-     return f"Atributos de Portero para {self.carta.nombre}"
 
 
 class Carta_jugador(models.Model):
