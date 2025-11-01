@@ -9,49 +9,92 @@ from .models import *
 
 #GET obtener todas las cartas
 def listar_cartas(request):
-    cartas = list(Carta_jugador.objects.values(
-        'id',
-        'nombre',
-        'pais__nombre',
-        'posicion',
-        'ritmo',
-        'tiro',
-        'pase',
-        'regate',
-        'defensa',
-        'fisico',
-        'liga__nombre',
-        'club__nombre',
-        'activo'
-    ))
+    #    obtenemos todos los objetos de carta completos.
+    #    .select_related() es una optimización clave: le dice a Django
+    #    que también coja los datos de club, pais y liga en la misma
+    #    consulta. Esto evita muchas consultas extra a la BBDD.
+    todas_las_cartas = Carta_jugador.objects.all().select_related('club','liga','pais')
+    cartas_para_json = []
 
-    if cartas:
-        return  JsonResponse(cartas, safe=False)
-    else:
-        return  JsonResponse({'mensaje': 'No se encontraron cartas en la base de datos'})
+    for carta in todas_las_cartas:
+        datos_carta = {
+            'id':carta.id,
+            'nombre':carta.nombre,
+            'posicion':carta.posicion,
+            'puntuacion_total':carta.puntuacion_total,
+            'club':carta.club.nombre,
+            'liga':carta.liga.nombre,
+            'pais':carta.pais.nombre,
+            'activo':carta.activo
+        }
+
+        if carta.posicion == 'POR':
+            datos_carta.update({
+                'salto':carta.salto,
+                'parada':carta.parada,
+                'saque':carta.saque,
+                'reflejos':carta.reflejos,
+                'velocidad':carta.velocidad,
+                'posicionamiento':carta.posicionamiento
+            })
+        else:
+            datos_carta.update({
+                'ritmo':carta.ritmo,
+                'tiro':carta.tiro,
+                'pase':carta.pase,
+                'regate':carta.regate,
+                'defensa':carta.defensa,
+                'fisico':carta.fisico
+            })
+        cartas_para_json.append(datos_carta)
+
+        if cartas_para_json:
+            return JsonResponse(cartas_para_json,safe=False)
+        else:
+            return JsonResponse({'mensaje': 'No se encontraton cartas en la base de datos'})
 
 #GET obtener una carta específica
 def obtener_carta_id(request, carta_id):
     try:
-        carta = Carta_jugador.objects.get(pk=carta_id)
-        datos = {
-            'id':carta.id,
-            'nombre':carta.nombre,
+        carta = Carta_jugador.objects.select_related('club', 'liga', 'pais').get(pk=carta_id)
+
+        datos_carta = {
+            'id': carta.id,
+            'nombre': carta.nombre,
             'posicion': carta.posicion,
-            'ritmo': carta.ritmo,
-            'tiro': carta.tiro,
-            'pase':carta.pase,
-            'regate':carta.regate,
-            'defensa':carta.defensa,
-            'fisico':carta.fisico,
+            'puntuacion_total': carta.puntuacion_total,
             'club': carta.club.nombre,
-            'liga': carta.liga.nombre,
             'pais': carta.pais.nombre,
+            'liga': carta.liga.nombre,
             'activo': carta.activo
         }
-        return JsonResponse(datos)
+        if carta.posicion == 'POR':
+            datos_carta.update({
+                'salto':carta.salto,
+                'parada':carta.parada,
+                'saque':carta.saque,
+                'reflejos':carta.reflejos,
+                'velocidad':carta.velocidad,
+                'posicionamiento':carta.posicionamiento
+            })
+        else:
+          datos_carta.update({
+              'ritmo': carta.ritmo,
+              'tiro':carta.tiro,
+              'pase':carta.pase,
+              'regate':carta.regate,
+              'defensa':carta.regate,
+              'fisico':carta.fisico
+          })
+
+        return JsonResponse(datos_carta)
     except Carta_jugador.DoesNotExist:
-        return JsonResponse({'mensaje': 'La carta no existe'},status=404)
+        return  JsonResponse({'mensaje': 'La carta no existe'},status=404)
+
+
+
+
+
 
 #POST crear una carta
 @csrf_exempt
@@ -67,12 +110,23 @@ def crear_carta(request):
             nueva_carta = Carta_jugador.objects.create(
                 nombre = datos['nombre'],
                 posicion = datos['posicion'],
-                ritmo = datos['ritmo'],
-                tiro = datos['tiro'],
-                pase = datos['pase'],
-                regate = datos['regate'],
-                defensa = datos['defensa'],
-                fisico = datos['fisico'],
+                #Atributos de campo
+                ritmo = datos.get('ritmo',30),
+                tiro = datos.get('tiro',30),
+                pase = datos.get('pase',30),
+                regate = datos.get('regate',30),
+                defensa = datos.get('defensa',30),
+                fisico = datos.get('fisico',30),
+
+
+                #Atributos portero
+                salto = datos.get('salto',30),
+                parada = datos.get('parada',30),
+                saque = datos.get('saque',30),
+                reflejos = datos.get('reflejos',30),
+                velocidad = datos.get('velocidad',30),
+                posicionamiento = datos.get('posicionamiento',30),
+
                 club = club,
                 pais = pais,
                 liga = liga
@@ -88,35 +142,55 @@ def crear_carta(request):
 #PUT updatear carta
 @csrf_exempt
 def actualizar_carta(request, carta_id):
-   if request.method == 'PUT':
-       try:
-           carta = Carta_jugador.objects.get(pk=carta_id)
-           datos = json.loads(request.body)
 
-           club = Club.objects.get(pk=datos['club_id'])
-           liga = Liga.objects.get(pk=datos['liga_id'])
-           pais = Pais.objects.get(pk=datos['pais_id'])
+    if request.method == 'PUT':
+        try:
 
-           carta.nombre = datos['nombre']
-           carta.posicion = datos['posicion']
-           carta.ritmo = datos['ritmo']
-           carta.tiro = datos['tiro']
-           carta.pase = datos['pase']
-           carta.regate = datos['regate']
-           carta.defensa = datos['defensa']
-           carta.fisico = datos['fisico']
-           carta.club = club
-           carta.pais = pais
-           carta.liga = liga
-           carta.save()
+            carta = Carta_jugador.objects.get(pk=carta_id)
 
-           return JsonResponse({"mensaje": "Carta actualizada con exito"})
-       except Carta_jugador.DoesNotExist:
-           return JsonResponse({'mensaje': 'La carta no existe'},status=404)
-       except Exception as e:
-           return JsonResponse({'error': str(e)},status=400)
 
-   return JsonResponse({'error': 'Este endpoint no soporta peticiones PUT'},status=405)
+            datos = json.loads(request.body)
+
+
+            club = Club.objects.get(pk=datos['club_id'])
+            liga = Liga.objects.get(pk=datos['liga_id'])
+            pais = Pais.objects.get(pk=datos['pais_id'])
+
+            carta.nombre = datos.get('nombre', carta.nombre)
+            carta.posicion = datos.get('posicion', carta.posicion)
+
+            # atributos de campo
+            carta.ritmo = datos.get('ritmo', 30)
+            carta.tiro = datos.get('tiro', 30)
+            carta.pase = datos.get('pase', 30)
+            carta.regate = datos.get('regate', 30)
+            carta.defensa = datos.get('defensa', 30)
+            carta.fisico = datos.get('fisico', 30)
+
+            # atributos de portero
+            carta.salto = datos.get('salto', 30)
+            carta.parada = datos.get('parada', 30)
+            carta.saque = datos.get('saque', 30)
+            carta.reflejos = datos.get('reflejos', 30)
+            carta.velocidad = datos.get('velocidad', 30)
+            carta.posicionamiento = datos.get('posicionamiento', 30)
+
+
+            carta.club = club
+            carta.pais = pais
+            carta.liga = liga
+
+            carta.save()
+
+            return JsonResponse({"mensaje": "Carta actualizada con exito"})
+
+        except Carta_jugador.DoesNotExist:
+            return JsonResponse({'mensaje': 'La carta no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Este endpoint no soporta peticiones PUT'}, status=405)
+
 
 # PATCH Updatear carta campos específicos
 @csrf_exempt
@@ -128,12 +202,21 @@ def actualizar_campos_especificos_carta(request, carta_id):
 
             carta.nombre = datos.get('nombre', carta.nombre)
             carta.posicion = datos.get('posicion', carta.posicion)
-            carta.ritmo = datos.get('ritmo', carta.ritmo)
-            carta.tiro = datos.get('tiro', carta.tiro)
-            carta.pase = datos.get('pase', carta.pase)
-            carta.regate = datos.get('regate', carta.regate)
-            carta.defensa = datos.get('defensa', carta.defensa)
-            carta.fisico = datos.get('fisico', carta.fisico)
+
+            if carta.posicion == 'POR':
+                carta.salto = datos.get('salto',carta.salto)
+                carta.parada = datos.get('parada',carta.parada)
+                carta.saque = datos.get('saque',carta.saque)
+                carta.reflejos = datos.get('reflejos',carta.reflejos)
+                carta.posicionamiento = datos.get('posicionamiento',carta.posicionamiento)
+            else:
+
+              carta.ritmo = datos.get('ritmo', carta.ritmo)
+              carta.tiro = datos.get('tiro', carta.tiro)
+              carta.pase = datos.get('pase', carta.pase)
+              carta.regate = datos.get('regate', carta.regate)
+              carta.defensa = datos.get('defensa', carta.defensa)
+              carta.fisico = datos.get('fisico', carta.fisico)
 
             if 'club_id' in datos:
                 carta.club = Club.objects.get(pk=datos['club_id'])
