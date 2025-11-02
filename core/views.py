@@ -1,4 +1,5 @@
 import json
+from wsgiref.util import request_uri
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -413,6 +414,25 @@ def asignar_equipo_a_usuario(request, usuario_id):
             return JsonResponse({'mensaje':'El usuario no existe'},status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)},status=500)
+    else:
+        return JsonResponse({'error': 'Este endpoint solo soporta peticiones POST'},status=405)
 
+# Eliminacion de equipo a un usuario
+@csrf_exempt
+def eliminar_equipo_de_usuario(request, usuario_id):
+    if request.method == 'DELETE':
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
 
-    return JsonResponse({'error': 'Este endpoint solo soporta peticiones POST'},status=405)
+            equipo = Equipo_usuario.objects.filter(usuario=usuario)
+            if not equipo.exists():
+                return JsonResponse({'mensaje': 'no hay ningun equipo asignado a este usuario'})
+            equipo.delete()
+            return JsonResponse({'mensaje': 'Equipo eliminado con éxito'}, status=200)
+
+        except Usuario.DoesNotExist:
+            return JsonResponse({'mensaje': 'el usuario no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'},status=405)
