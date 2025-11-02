@@ -24,9 +24,9 @@ class Command(BaseCommand):
 
         paises = []
         for _ in range(5):
-            pais, _ = Pais.objects.get_or_create(nombre=fake.unique.country()) # la busca y sino la crea,
+            pais, _ = Pais.objects.get_or_create(nombre=fake.unique.country())  # la busca y sino la crea,
             # Si solo pusieramos create y se volviera a crear un nombre ya creado en otra ejecucion del script,
-            #daría error. De esta manera lo busca primero y si no esta lo crea. Utizamos _ como papelera ya
+            # daría error. De esta manera lo busca primero y si no esta lo crea. Utizamos _ como papelera ya
             # que no nos interesa el booleano que nos da la función
             paises.append(pais)
 
@@ -46,35 +46,106 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f'Dependencias creadas: {len(paises)} Países, {len(ligas)} Ligas, {len(clubes)} Clubes.'))
-        self.stdout.write(self.style.NOTICE('Iniciando creación de 150 cartas. Esto puede tardar unos segundos...'))
+        
+        self.stdout.write(self.style.NOTICE('Iniciando creación de 150 cartas con lógica de stats realistas...'))
 
         # Creación de 150 cartas (usando .create() para activar el .save())
 
-        posiciones_validas = [pos[0] for pos in Carta_jugador.POSICIONES] # con pos[0] cogemos solamente la posición
+        posiciones_validas = [pos[0] for pos in Carta_jugador.POSICIONES]  # con pos[0] cogemos solamente la posición
         # de 3 letras (POR, DFC, MC, ...)
+
+        # Definimos rangos de stats para hacer que los jugadores
+        # sean más realistas según su posición.
+        RANGO_BAJO = (10, 40)
+        RANGO_MEDIO = (45, 75)
+        RANGO_ALTO = (76, 95)
 
         cartas_creadas = []
         for _ in range(150):
+            posicion_elegida = random.choice(posiciones_validas)
+
+            if posicion_elegida == 'POR':
+                # --- PORTERO ---
+                ritmo = random.randint(*RANGO_BAJO)
+                tiro = random.randint(*RANGO_BAJO)
+                pase = random.randint(*RANGO_BAJO)
+                regate = random.randint(*RANGO_BAJO)
+                defensa = random.randint(*RANGO_BAJO)
+                fisico = random.randint(*RANGO_MEDIO)
+                salto = random.randint(*RANGO_ALTO)
+                parada = random.randint(*RANGO_ALTO)
+                saque = random.randint(*RANGO_ALTO)
+                reflejos = random.randint(*RANGO_ALTO)
+                velocidad = random.randint(*RANGO_MEDIO)
+                posicionamiento = random.randint(*RANGO_ALTO)
+
+            elif posicion_elegida in ['DFC', 'LD', 'LI']:
+                # --- DEFENSA ---
+                ritmo = random.randint(*RANGO_MEDIO)
+                tiro = random.randint(*RANGO_BAJO)
+                pase = random.randint(*RANGO_MEDIO)
+                regate = random.randint(*RANGO_BAJO)
+                defensa = random.randint(*RANGO_ALTO)
+                fisico = random.randint(*RANGO_ALTO)
+                salto = random.randint(*RANGO_MEDIO)
+                parada = random.randint(*RANGO_BAJO)
+                saque = random.randint(*RANGO_BAJO)
+                reflejos = random.randint(*RANGO_BAJO)
+                velocidad = random.randint(*RANGO_MEDIO)
+                posicionamiento = random.randint(*RANGO_MEDIO)
+
+            elif posicion_elegida in ['MC', 'MCD', 'MCO']:
+                # --- CENTROCAMPISTA ---
+                ritmo = random.randint(*RANGO_MEDIO)
+                tiro = random.randint(*RANGO_MEDIO)
+                pase = random.randint(*RANGO_ALTO)
+                regate = random.randint(*RANGO_ALTO)
+                defensa = random.randint(*RANGO_MEDIO)
+                fisico = random.randint(*RANGO_MEDIO)
+                salto = random.randint(*RANGO_BAJO)
+                parada = random.randint(*RANGO_BAJO)
+                saque = random.randint(*RANGO_BAJO)
+                reflejos = random.randint(*RANGO_BAJO)
+                velocidad = random.randint(*RANGO_MEDIO)
+                posicionamiento = random.randint(*RANGO_MEDIO)
+
+            else:
+                # --- DELANTERO ---
+                ritmo = random.randint(*RANGO_ALTO)
+                tiro = random.randint(*RANGO_ALTO)
+                pase = random.randint(*RANGO_MEDIO)
+                regate = random.randint(*RANGO_ALTO)
+                defensa = random.randint(*RANGO_BAJO)
+                fisico = random.randint(*RANGO_MEDIO)
+                salto = random.randint(*RANGO_MEDIO)
+                parada = random.randint(*RANGO_BAJO)
+                saque = random.randint(*RANGO_BAJO)
+                reflejos = random.randint(*RANGO_BAJO)
+                velocidad = random.randint(*RANGO_MEDIO)
+                posicionamiento = random.randint(*RANGO_MEDIO)
+
+
+            # 3. Creamos la carta con las stats generadas
             carta = Carta_jugador.objects.create(
                 nombre=fake.first_name() + " " + fake.last_name(),
                 pais=random.choice(paises),
-                posicion=random.choice(posiciones_validas),
+                posicion=posicion_elegida,  # Usamos la posición ya elegida
 
                 # Stats de Campo
-                ritmo=random.randint(50, 99),
-                tiro=random.randint(50, 99),
-                pase=random.randint(50, 99),
-                regate=random.randint(50, 99),
-                defensa=random.randint(30, 99),
-                fisico=random.randint(40, 99),
+                ritmo=ritmo,
+                tiro=tiro,
+                pase=pase,
+                regate=regate,
+                defensa=defensa,
+                fisico=fisico,
 
                 # Stats de Portero
-                salto=random.randint(50, 99),
-                parada=random.randint(50, 99),
-                saque=random.randint(50, 99),
-                reflejos=random.randint(50, 99),
-                velocidad=random.randint(50, 99),
-                posicionamiento=random.randint(50, 99),
+                salto=salto,
+                parada=parada,
+                saque=saque,
+                reflejos=reflejos,
+                velocidad=velocidad,
+                posicionamiento=posicionamiento,
 
                 # Relaciones
                 liga=random.choice(ligas),
@@ -82,10 +153,9 @@ class Command(BaseCommand):
 
                 # Requisitos del Req5
                 activo=True,
-
             )
             cartas_creadas.append(carta)
 
         self.stdout.write(self.style.SUCCESS(f'¡Éxito! Se han creado {len(cartas_creadas)} cartas.'))
         self.stdout.write(self.style.NOTICE(
-            'Cada carta ha calculado su "puntuacion_total" automáticamente gracias al método .save().'))
+            'Cada carta ha calculado su "puntuacion_total" automáticamente con stats realistas.'))
