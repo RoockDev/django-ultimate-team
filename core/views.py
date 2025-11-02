@@ -377,3 +377,42 @@ def borrar_usuario(request, usuario_id):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'}, status=405)
+
+
+# Asignación de equipo a usuario
+@csrf_exempt
+def asignar_equipo_a_usuario(request, usuario_id):
+    if request.method == 'POST':
+        try:
+            usuario = Usuario.objects.get(pk=usuario_id)
+
+            equipo_existente = Equipo_usuario.objects.filter(usuario=usuario)
+
+            if equipo_existente.exists():
+                return JsonResponse({'mensaje': 'El usuario ya tiene un equipo. Debe eliminarlo primero'},status=400)
+            datos = json.loads(request.body)
+            nombre_equipo = datos.get('nombre')
+
+            if not nombre_equipo:
+                return JsonResponse({'error': 'El nombre del equipo es obligatorio en el body'},status=400)
+
+            nuevo_equipo = Equipo_usuario.objects.create(
+                usuario = Usuario,
+                nombre = nombre_equipo
+            )
+
+            return JsonResponse({
+                'mensaje': 'Equipo creado y asignado con éxito',
+                'equipo_id': nuevo_equipo.id,
+                'nombre_equipo': nuevo_equipo.nombre,
+                'usuario_id': usuario.id
+            },status=201)
+
+
+        except Usuario.DoesNotExist:
+            return JsonResponse({'mensaje':'El usuario no existe'},status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)},status=500)
+
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones POST'},status=405)
