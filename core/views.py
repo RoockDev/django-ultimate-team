@@ -397,7 +397,7 @@ def asignar_equipo_a_usuario(request, usuario_id):
                 return JsonResponse({'error': 'El nombre del equipo es obligatorio en el body'},status=400)
 
             nuevo_equipo = Equipo_usuario.objects.create(
-                usuario = Usuario,
+                usuario = usuario,
                 nombre = nombre_equipo
             )
 
