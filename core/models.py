@@ -151,3 +151,46 @@ class Equipo_usuario(models.Model):
     def __str__(self):
         return self.nombre
 
+    def validar_plantilla(self):
+        cartas_activas = self.cartas.filter(activo=True)
+        total_cartas_activas = self.cartas.filter(activo=True).count()
+
+        if total_cartas_activas < 23 or total_cartas_activas > 25:
+            return(False, f"El equipo tiene {total_cartas_activas} jugadores activos, debe tener entre 23 y 25")
+
+
+        """
+        porteros entre 2 y 3
+        defensas entre 8 y 10
+        centrocampistas entre 6 y 9
+        delanteros entre 5 y 6
+        """
+        total_porteros = cartas_activas.filter(posicion = 'POR').count()
+        total_defensas = cartas_activas.filter(posicion__in=['DFC','LTI','LTD']).count()
+        total_centrocampistas = cartas_activas.filter(posicion__in=['MC','MI','MD']).count()
+        total_delanteros = cartas_activas.filter(posicion__in=['DC','MP']).count()
+        if not (2 <= total_porteros <=3):
+            return (False, f"El equipo tiene {total_porteros} porteros. Debe tener entre 2 y 3.")
+
+        elif not (8 <= total_defensas <= 10):
+            return (False, f"El equipo tiene {total_defensas} defensas. Debe tener entre 8 y 10.")
+
+        elif not (6 <= total_centrocampistas <= 9):
+            return (False, f"El equipo tiene {total_centrocampistas} centrocampistas. Debe tener entre 6 y 9.")
+
+        elif not (5 <= total_delanteros <= 6):
+            return (False, f"El equipo tiene {total_delanteros} delanteros. Debe tener entre 5 y 6.")
+
+
+
+        return (True, "Plantilla validada")
+
+
+
+
+
+
+
+
+
+
