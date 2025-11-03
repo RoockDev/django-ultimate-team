@@ -436,3 +436,75 @@ def eliminar_equipo_de_usuario(request, usuario_id):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'},status=405)
+
+
+def consultar_equipo_usuario(request, usuario_id):
+
+    if request.method == 'GET':
+        try:
+            # Buscamos el equipo que pertenezca a ese usuario_id.
+            # Usamos select_related('usuario') para que también traiga
+            # los datos del usuario en la misma consulta (más eficiente).
+            equipo = Equipo_usuario.objects.select_related('usuario').get(usuario__id=usuario_id)
+
+            # Obtenemos las cartas del equipo, pero solo las activas (Req6)
+            cartas_activas = equipo.cartas.filter(activo=True).select_related('club', 'liga', 'pais')
+
+            # Cconvertimos a JSON las cartas
+            lista_cartas_json = []
+            for carta in cartas_activas:
+                datos_carta = {
+                    'id': carta.id,
+                    'nombre': carta.nombre,
+                    'posicion': carta.posicion,
+                    'puntuacion_total': carta.puntuacion_total,
+                    'club': carta.club.nombre,
+                    'liga': carta.liga.nombre,
+                    'pais': carta.pais.nombre,
+                }
+
+                # Añadimos las stats correctas según la posición (solo mostramos las stats relevantes)
+                if carta.posicion == 'POR':
+                    datos_carta.update({
+                        'salto': carta.salto,
+                        'parada': carta.parada,
+                        'saque': carta.saque,
+                        'reflejos': carta.reflejos,
+                        'velocidad': carta.velocidad,
+                        'posicionamiento': carta.posicionamiento
+                    })
+                else:
+                    datos_carta.update({
+                        'ritmo': carta.ritmo,
+                        'tiro': carta.tiro,
+                        'pase': carta.pase,
+                        'regate': carta.regate,
+                        'defensa': carta.defensa,
+                        'fisico': carta.fisico
+                    })
+                lista_cartas_json.append(datos_carta)
+
+            # JSON de los datos del equipo
+            respuesta_final = {
+                'equipo_id': equipo.id,
+                'nombre_equipo': equipo.nombre,
+                'fecha_creacion': equipo.fecha_creacion,
+                'propietario_username': equipo.usuario.username,
+                'cartas_activas': lista_cartas_json,
+                'total_cartas_activas': len(lista_cartas_json)
+            }
+
+            return JsonResponse(respuesta_final, safe=False)
+
+        # Controlamos los errores
+        except Equipo_usuario.DoesNotExist:
+            # Comprobamos si es que el usuario no existe, o si solo no tiene equipo
+            if not Usuario.objects.filter(pk=usuario_id).exists():
+                return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)
+            else:
+                return JsonResponse({'mensaje': 'Este usuario no tiene ningún equipo asignado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Este endpoint solo soporta peticiones GET'}, status=405)
