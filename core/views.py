@@ -508,3 +508,99 @@ def consultar_equipo_usuario(request, usuario_id):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Este endpoint solo soporta peticiones GET'}, status=405)
+
+
+@csrf_exempt
+def anadir_carta_a_equipo(request, equipo_id):
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Este endpoint solo soporta peticiones POST'}, status=405)
+
+    try:
+        # Buscamos el equipo al que queremos añadir la carta
+        equipo = Equipo_usuario.objects.get(pk=equipo_id)
+
+        datos = json.loads(request.body)
+        carta_id_a_anadir = datos['carta_id']
+
+        # Buscamos la carta que queremos añadir
+        carta_a_anadir = Carta_jugador.objects.get(pk=carta_id_a_anadir)
+
+        # Validaciones (Req7 y Req3.1)
+
+        # Validación 1: Que la carta esté activa
+        if not carta_a_anadir.activo:
+            return JsonResponse({'error': 'La carta que intentas añadir no está activa'}, status=400)
+
+        # Validación 2: Que la carta no esté ya en el equipo (Req7)
+        if equipo.cartas.filter(pk=carta_a_anadir.pk).exists():
+            return JsonResponse({'error': 'Esta carta ya existe en el equipo'}, status=400)
+
+        # Validación 3: Límite total de cartas activas (Req7)
+        cartas_activas_equipo = equipo.cartas.filter(activo=True)
+        conteo_total_activas = cartas_activas_equipo.count()
+
+        if conteo_total_activas >= 25:
+            return JsonResponse({'error': 'El equipo ya tiene el máximo de 25 cartas activas'}, status=400)
+
+        # Validación 4: Límites por posición (Req7 y Req3.1)
+
+        # Definimos los límites por tipo de posición
+        LIMITES_POSICION = {
+            'Portero': 3,
+            'Defensa': 10,
+            'Centrocampista': 9,
+            'Delantero': 6,
+        }
+
+        # Definimos un mapa para convertir la posición (ej. 'DFC') a un tipo (ej.
+        # Agrupamos jugadores por una posicion más genérica
+        POSICION_TIPO_MAP = {
+            'POR': 'Portero',
+            'DFC': 'Defensa', 'LTI': 'Defensa', 'LTD': 'Defensa',
+            'MC': 'Centrocampista', 'MI': 'Centrocampista', 'MD': 'Centrocampista',
+            'DC': 'Delantero', 'MP': 'Delantero',
+        }
+
+        # Obtenemos el tipo de la carta que queremos añadir
+        tipo_carta_nueva = POSICION_TIPO_MAP.get(carta_a_anadir.posicion)
+
+        if not tipo_carta_nueva:
+            return JsonResponse({'error': f'La posición "{carta_a_anadir.posicion}" de la carta no es válida'},
+                                status=400)
+
+        # Contamos cuántas cartas de ese tipo ya hay en el equipo
+        conteo_actual_tipo = 0
+        if tipo_carta_nueva == 'Portero':
+            conteo_actual_tipo = cartas_activas_equipo.filter(posicion='POR').count()
+        elif tipo_carta_nueva == 'Defensa':
+            conteo_actual_tipo = cartas_activas_equipo.filter(posicion__in=['DFC', 'LTI', 'LTD']).count()
+        elif tipo_carta_nueva == 'Centrocampista':
+            conteo_actual_tipo = cartas_activas_equipo.filter(posicion__in=['MC', 'MI', 'MD']).count()
+        elif tipo_carta_nueva == 'Delantero':
+            conteo_actual_tipo = cartas_activas_equipo.filter(posicion__in=['DC', 'MP']).count()
+
+        # Comprobamos si hemos alcanzado el límite para ese tipo
+        limite_para_este_tipo = LIMITES_POSICION[tipo_carta_nueva]
+        if conteo_actual_tipo >= limite_para_este_tipo:
+            return JsonResponse({
+                'error': f'Límite de {tipo_carta_nueva}s alcanzado.',
+                'mensaje': f'Ya tienes {conteo_actual_tipo} de {limite_para_este_tipo} (máximo) permitidos.'
+            }, status=400)
+
+        # Si todas las validaciones pasan, añadimos la carta a la relación
+        # "Muchos a Muchos" (ManyToManyField)
+        equipo.cartas.add(carta_a_anadir)
+
+        return JsonResponse(
+            {'mensaje': f'Carta "{carta_a_anadir.nombre}" añadida al equipo "{equipo.nombre}" con éxito'}, status=200)
+
+    except Equipo_usuario.DoesNotExist:
+        return JsonResponse({'error': 'El equipo especificado no existe'}, status=404)
+    except Carta_jugador.DoesNotExist:
+        return JsonResponse({'error': 'La carta especificada no existe'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido en el body de la petición. Asegúrate de enviar {"carta_id": X}'},
+                            status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Ha ocurrido un error inesperado: {str(e)}'}, status=500)
