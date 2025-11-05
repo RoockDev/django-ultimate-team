@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import make_password
+import random
 
 from .models import *
 
@@ -387,35 +388,116 @@ def asignar_equipo_a_usuario(request, usuario_id):
         try:
             usuario = Usuario.objects.get(pk=usuario_id)
 
+            # Comprobamos si el usuario ya tiene un equipo (Req3)
             equipo_existente = Equipo_usuario.objects.filter(usuario=usuario)
-
             if equipo_existente.exists():
-                return JsonResponse({'mensaje': 'El usuario ya tiene un equipo. Debe eliminarlo primero'},status=400)
+                return JsonResponse({'mensaje': 'El usuario ya tiene un equipo. Debe eliminarlo primero'}, status=400)
+
             datos = json.loads(request.body)
             nombre_equipo = datos.get('nombre')
 
             if not nombre_equipo:
-                return JsonResponse({'error': 'El nombre del equipo es obligatorio en el body'},status=400)
+                return JsonResponse({'error': 'El "nombre" del equipo es obligatorio en el body'}, status=400)
 
+
+            PLANTILLA_OBJETIVO = {}
+
+            while True:
+
+                num_por = random.randint(2, 3)
+                num_def = random.randint(8, 10)
+                num_cen = random.randint(6, 9)
+                num_del = random.randint(5, 6)
+
+                total_calculado = num_por + num_def + num_cen + num_del
+
+                # Comprobamos si la SUMA TOTAL es válida
+                if (23 <= total_calculado <= 25):
+                    # ¡Tomaaaaa! Esta plantilla cumple TODAS las reglas.
+                    PLANTILLA_OBJETIVO = {
+                        'POR': num_por,
+                        'DEF': num_def,
+                        'CEN': num_cen,
+                        'DEL': num_del,
+                    }
+
+                    break
+
+            # Definimos los mapas de posición (para las consultas)
+            MAPA_DEFENSAS = ['DFC', 'LTI', 'LTD']
+            MAPA_CENTROS = ['MC', 'MI', 'MD']
+            MAPA_DELANTEROS = ['DC', 'MP']
+
+            lista_cartas_para_asignar = []
+
+            # Buscamos cartas aleatorias PARA CADA POSICIÓN
+            try:
+                # Buscamos Porteros
+                cartas_por = Carta_jugador.objects.filter(
+                    activo=True, posicion='POR'
+                ).order_by('?')[:PLANTILLA_OBJETIVO['POR']]
+                if cartas_por.count() < PLANTILLA_OBJETIVO['POR']:
+                    raise Exception("No hay suficientes porteros en la BBDD.")
+                lista_cartas_para_asignar.extend(list(cartas_por))
+
+                # Buscamos Defensas
+                cartas_def = Carta_jugador.objects.filter(
+                    activo=True, posicion__in=MAPA_DEFENSAS
+                ).order_by('?')[:PLANTILLA_OBJETIVO['DEF']]
+                if cartas_def.count() < PLANTILLA_OBJETIVO['DEF']:
+                    raise Exception("No hay suficientes defensas en la BBDD.")
+                lista_cartas_para_asignar.extend(list(cartas_def))
+
+                # Buscamos Centrocampistas
+                cartas_cen = Carta_jugador.objects.filter(
+                    activo=True, posicion__in=MAPA_CENTROS
+                ).order_by('?')[:PLANTILLA_OBJETIVO['CEN']]
+                if cartas_cen.count() < PLANTILLA_OBJETIVO['CEN']:
+                    raise Exception("No hay suficientes centrocampistas en la BBDD.")
+                lista_cartas_para_asignar.extend(list(cartas_cen))
+
+                # Buscamos Delanteros
+                cartas_del = Carta_jugador.objects.filter(
+                    activo=True, posicion__in=MAPA_DELANTEROS
+                ).order_by('?')[:PLANTILLA_OBJETIVO['DEL']]
+                if cartas_del.count() < PLANTILLA_OBJETIVO['DEL']:
+                    raise Exception("No hay suficientes delanteros en la BBDD.")
+                lista_cartas_para_asignar.extend(list(cartas_del))
+
+            except Exception as e:
+                return JsonResponse({'error': f"Error al seleccionar cartas aleatorias: {str(e)}"}, status=500)
+
+            # Creamos el equipo y asignamos la plantilla
             nuevo_equipo = Equipo_usuario.objects.create(
-                usuario = usuario,
-                nombre = nombre_equipo
+                usuario=usuario,
+                nombre=nombre_equipo
             )
+            nuevo_equipo.cartas.set(lista_cartas_para_asignar)
+
+            # Validamos la plantilla con el método validar plantilla
+            es_valido, mensaje_error = nuevo_equipo.validar_plantilla()
+            if not es_valido:
+                nuevo_equipo.delete()
+                return JsonResponse(
+                    {'error': 'Error crítico: La plantilla aleatoria generada no es válida.', 'detalle': mensaje_error},
+                    status=500)
 
             return JsonResponse({
-                'mensaje': 'Equipo creado y asignado con éxito',
+                'mensaje': 'Equipo creado y rellenado con una plantilla aleatoria válida.',
                 'equipo_id': nuevo_equipo.id,
                 'nombre_equipo': nuevo_equipo.nombre,
-                'usuario_id': usuario.id
-            },status=201)
-
+                'usuario_id': usuario.id,
+                'total_cartas_asignadas': len(lista_cartas_para_asignar)
+            }, status=201)
 
         except Usuario.DoesNotExist:
-            return JsonResponse({'mensaje':'El usuario no existe'},status=404)
+            return JsonResponse({'mensaje': 'El usuario no existe'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'JSON inválido. Solo se necesita el "nombre" del equipo.'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)},status=500)
+            return JsonResponse({'error': f'Error inesperado: {str(e)}'}, status=500)
     else:
-        return JsonResponse({'error': 'Este endpoint solo soporta peticiones POST'},status=405)
+        return JsonResponse({'error': 'Este endpoint solo soporta peticiones POST'}, status=405)
 
 # Eliminacion de equipo a un usuario
 @csrf_exempt
