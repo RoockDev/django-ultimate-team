@@ -156,7 +156,7 @@ class Equipo_usuario(models.Model):
         total_cartas_activas = self.cartas.filter(activo=True).count()
 
         if total_cartas_activas < 23 or total_cartas_activas > 25:
-            return(False, f"El equipo debe tener entre 23 y 25")
+            return(False, f"El equipo tiene {total_cartas_activas} jugadores activos, debe tener entre 23 y 25")
 
 
         """
