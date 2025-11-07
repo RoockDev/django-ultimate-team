@@ -346,3 +346,180 @@ class PruebasModeloCarta(TestCase):
 
 
 
+
+
+
+
+
+
+
+
+class PruebasAPIUsuario(TestCase):
+
+    def setUp(self):
+        """
+        Prepara los datos que necesitaremos para todas las pruebas
+        del crud de Usuario.
+        """
+        # Creamos un usuario de prueba para poder probar
+
+        self.usuario_existente = Usuario.objects.create(
+            username='usuario_de_prueba',
+            email='prueba@api.com',
+            password='123',
+            nombre='Test',
+            apellidos='Api'
+        )
+
+    def test_listar_usuarios_ok(self):
+
+        #uso el "Postman de django" (self.client) para llamar a la URL
+        respuesta = self.client.get('/api/usuarios/')
+
+        self.assertEqual(
+            respuesta.status_code,
+            200,
+            f"La ruta /api/usuarios/ falló. Se esperaba 200 OK, se obtuvo {respuesta.status_code}"
+
+        )
+
+        #se comprueba que el json es correcto
+        datos_json = respuesta.json()
+
+        #se comprueba que la respuesta es una lista
+        self.assertIsInstance(datos_json, list)
+
+        #se comprueba que la lista tiene 1 elemento, que es el que se crea en setup
+        self.assertEqual(len(datos_json), 1)
+        #se comprueba que el username del usuario esta en la bbdd
+        self.assertEqual(datos_json[0]['username'], 'usuario_de_prueba')
+
+    def test_obtener_usuario_id_ok(self):
+        """
+        Prueba que la ruta GET /usuarios/<id>/ funciona
+        y devuelve un 200 OK con los datos del usuario correcto
+        """
+
+        url = f'/api/usuarios/{self.usuario_existente.id}/'
+        respuesta = self.client.get(url)
+
+        self.assertEqual(respuesta.status_code, 200)
+
+        datos_json = respuesta.json()
+
+        self.assertEqual(datos_json['username'], 'usuario_de_prueba')
+
+        self.assertEqual(datos_json['id'], self.usuario_existente.id)
+
+    def test_obtener_usuario_id_404_not_found(self):
+        """
+        Prueba que la ruta GET /usuarios/<id>/ devuelve un 404
+        si el id del usuario no existe
+        """
+        url = '/api/usuarios/9999/'
+
+        respuesta = self.client.get(url)
+
+        self.assertEqual(respuesta.status_code, 404)
+
+        datos_json = respuesta.json()
+        self.assertEqual(datos_json['mensaje'], 'El usuario no existe')
+
+    def test_crear_usuario_ok(self):
+        """
+        Prueba que la ruta POST /usuarios/crear/ crea un nuevo
+        usuario y devuelve un 201 Created.
+        """
+
+        nuevos_datos_usuario = {
+            "username": "usuario_creado_test",
+            "email": "creado@test.com",
+            "password": "pass_segura_123"
+        }
+
+        # se cuentan los usuarios que hay para despues ver que cuando se crea uno nuevo hay + 1
+        conteo_antes = Usuario.objects.count()
+
+
+        #    data=nuevos_datos_usuario: lo que se quiere enviar
+        #     content_type='application/json':
+        #      le dice a Django que estamos enviando un json
+        #      para que sepa como leer el body
+        respuesta = self.client.post(
+            '/api/usuarios/crear/',
+            data=nuevos_datos_usuario,
+            content_type='application/json'
+        )
+
+        self.assertEqual(respuesta.status_code, 201)
+
+        #  se comprueba que el usuario se ha creado
+        conteo_despues = Usuario.objects.count()
+        # ahora tiene que haber uno
+        self.assertEqual(conteo_despues, conteo_antes + 1)
+
+        # se comprueba que el usuario existe en la BBDD
+        usuario_nuevo = Usuario.objects.get(username="usuario_creado_test")
+        self.assertEqual(usuario_nuevo.email, "creado@test.com")
+
+        datos_json = respuesta.json()
+        self.assertEqual(datos_json['mensaje'], 'Usuario creado con éxito')
+
+    def test_actualizar_usuario_ok(self):
+        """
+        Prueba que la ruta PUT /usuarios/actualizar/<id>/
+        actualiza un usuario existente y devuelve 200 OK.
+        """
+
+        url = f'/api/usuarios/actualizar/{self.usuario_existente.id}/'
+
+
+        datos_actualizados = {
+            "username": "usuario_actualizado",
+            "email": "actualizado@test.com",
+            "nombre": "Nombre Cambiado",
+            "apellidos": "Apellido Cambiado",
+            "fecha_nacimiento": "2000-01-01",
+            "password": "456"
+        }
+
+
+
+        respuesta = self.client.put(
+            url,
+            data=datos_actualizados,
+            content_type='application/json'
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+
+        #  refresca con los nuevos datos de la BBDD.
+        self.usuario_existente.refresh_from_db()
+
+        self.assertEqual(self.usuario_existente.username, "usuario_actualizado")
+        self.assertEqual(self.usuario_existente.nombre, "Nombre Cambiado")
+
+        datos_json = respuesta.json()
+        self.assertEqual(datos_json['mensaje'], 'Usuario actualizado con éxito')
+
+    def test_borrar_usuario_ok(self):
+            """
+            Prueba que la ruta DELETE /usuarios/borrar/<id>/
+            elimina un usuario existente y devuelve 200 OK.
+            """
+            url = f'/api/usuarios/borrar/{self.usuario_existente.id}/'
+            conteo_antes = Usuario.objects.count()
+            respuesta = self.client.delete(url)
+            self.assertEqual(respuesta.status_code, 200)
+            conteo_despues = Usuario.objects.count()
+            # ahora debe ser 1 menos que antes
+            self.assertEqual(conteo_despues, conteo_antes - 1)
+
+            datos_json = respuesta.json()
+            self.assertEqual(datos_json['mensaje'], 'Usuario eliminado (físicamente) con éxito')
+
+
+
+
+
+
