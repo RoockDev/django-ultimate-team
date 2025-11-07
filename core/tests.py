@@ -523,3 +523,125 @@ class PruebasAPIUsuario(TestCase):
 
 
 
+
+
+class PruebasAPICarta(TestCase):
+    def setUp(self):
+        """
+        Prepara los datos que necesitaremos para todos los test
+        del crud de Cartas.
+        """
+        pais_carta = Pais.objects.create(nombre="País Carta Test")
+        liga_carta = Liga.objects.create(nombre="Liga Carta Test")
+        self.club_carta = Club.objects.create(
+            nombre="Club Carta Test",
+            pais=pais_carta,
+            liga=liga_carta
+        )
+
+
+        self.carta_existente = Carta_jugador.objects.create(
+            nombre="Carta de Prueba API",
+            pais=pais_carta,
+            liga=liga_carta,
+            club=self.club_carta,
+            posicion='DC',
+            ritmo=90, tiro=90, pase=90, regate=90, defensa=90, fisico=90
+        )
+
+    def test_listar_cartas_ok(self):
+        """
+        Prueba que la ruta GET /cartas/ funciona
+        y devuelve la carta que creamos arriba
+        """
+
+        respuesta = self.client.get('/api/cartas/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        datos_json = respuesta.json()
+        self.assertIsInstance(datos_json, list)
+
+        # se comprueba que tiene 1 carta
+        self.assertEqual(len(datos_json), 1)
+
+    def test_obtener_carta_id_ok(self):
+        """
+        Prueba que la ruta GET /cartas/<id>/ funciona
+        y devuelve un 200 OK con los datos de la carta correcta.
+        """
+        url = f'/api/cartas/{self.carta_existente.id}/'
+
+        respuesta = self.client.get(url)
+
+        self.assertEqual(respuesta.status_code, 200)
+
+        datos_json = respuesta.json()
+
+        # se comprueba que el id es el correcto
+        self.assertEqual(datos_json['id'], self.carta_existente.id)
+
+    def test_obtener_carta_id_404_not_found(self):
+        """
+        Prueba que la ruta GET /cartas/<id>/ devuelve un 404
+        si el id de la carta no existe.
+        """
+        url = '/api/cartas/9999/'
+
+        respuesta = self.client.get(url)
+
+        self.assertEqual(respuesta.status_code, 404)
+        datos_json = respuesta.json()
+        self.assertEqual(datos_json['mensaje'], 'La carta no existe')
+
+
+
+    def test_borrar_carta_logico_ok(self):
+            """
+            Prueba que la ruta DELETE /cartas/borrar/<id>/
+            se desactiva el borrado lógico de una carta y devuelve 200 OK.
+            """
+            url = f'/api/cartas/borrar/{self.carta_existente.id}/'
+
+            conteo_antes = Carta_jugador.objects.count()
+
+            #    se verifca que la carta este activa antes del test
+            self.assertTrue(self.carta_existente.activo)
+
+            respuesta = self.client.delete(url)
+            self.assertEqual(respuesta.status_code, 200)
+
+            # se comprueba que la carta no se ha borrado de verdad
+            conteo_despues = Carta_jugador.objects.count()
+            self.assertEqual(conteo_despues, conteo_antes)
+
+            # se comprueba que la carta ahora este desactivada
+
+            # se refresca el objeto desde la BBDD
+            # para ver el cambio que hizo la vista en el campo activo
+            self.carta_existente.refresh_from_db()
+
+            # se comprueba que activo es false
+            self.assertFalse(self.carta_existente.activo)
+            datos_json = respuesta.json()
+            self.assertEqual(datos_json['mensaje'], 'Carta desactivada con exito')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
