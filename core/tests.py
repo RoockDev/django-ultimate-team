@@ -159,4 +159,66 @@ class PruebasModeloEquipo(TestCase):
                 "El equipo tiene 4 porteros. Debe tener entre 2 y 3."
             )
 
+    def test_validar_plantilla_equipo_valido_completo(self):
 
+                usuario_prueba = Usuario.objects.create(
+                    username='testuser_valido',
+                    email='test_valido@test.com',
+                    password='123'
+                )
+                equipo_prueba = Equipo_usuario.objects.create(
+                    usuario=usuario_prueba,
+                    nombre="Equipo Válido"
+                )
+                pais_prueba = Pais.objects.create(nombre="País Válido")
+                liga_prueba = Liga.objects.create(nombre="Liga Válida")
+                club_prueba = Club.objects.create(
+                    nombre="Club Válido",
+                    pais=pais_prueba,
+                    liga=liga_prueba
+                )
+
+                cartas_de_prueba = []
+
+                for i in range(3):
+                    carta = Carta_jugador.objects.create(
+                        nombre=f"Portero Válido {i + 1}",
+                        pais=pais_prueba, liga=liga_prueba, club=club_prueba,
+                        posicion='POR'
+                    )
+                    cartas_de_prueba.append(carta)
+
+                for i in range(10):
+                    carta = Carta_jugador.objects.create(
+                        nombre=f"Defensa Válido {i + 1}",
+                        pais=pais_prueba, liga=liga_prueba, club=club_prueba,
+                        posicion='DFC'
+                    )
+                    cartas_de_prueba.append(carta)
+
+                for i in range(6):
+                    carta = Carta_jugador.objects.create(
+                        nombre=f"Centro Válido {i + 1}",
+                        pais=pais_prueba, liga=liga_prueba, club=club_prueba,
+                        posicion='MC'
+                    )
+                    cartas_de_prueba.append(carta)
+
+                for i in range(6):
+                    carta = Carta_jugador.objects.create(
+                        nombre=f"Delantero Válido {i + 1}",
+                        pais=pais_prueba, liga=liga_prueba, club=club_prueba,
+                        posicion='DC'
+                    )
+                    cartas_de_prueba.append(carta)
+
+                equipo_prueba.cartas.set(cartas_de_prueba)
+
+                es_valido, mensaje = equipo_prueba.validar_plantilla()
+
+                self.assertTrue(es_valido, f"La validación debería pasar (True), pero falló y devolvió: {mensaje}")
+
+                self.assertEqual(
+                    mensaje,
+                    "Plantilla validada"
+                )
