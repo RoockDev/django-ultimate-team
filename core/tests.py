@@ -686,3 +686,29 @@ class PruebasAPIEquipo(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('no hay ningun equipo', response.json()['mensaje'])
+
+    def test_consultar_equipo_200_ok(self):
+        """
+        Prueba que GET /equipo/consultar/<id>/
+        devuelve los datos del equipo del usuario.
+        """
+        response = self.client.get(self.url_consultar)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['nombre_equipo'], 'Mi Equipo 1')
+        self.assertEqual(response.json()['propietario_username'], 'usuario1')
+
+    def test_consultar_equipo_filtro_activo(self):
+        """
+        Prueba que GET /equipo/consultar/<id>/ (Req6)
+        solo devuelve las cartas con activo=True.
+        """
+        self.equipo1.cartas.add(self.delantero_para_anadir)
+        self.equipo1.cartas.add(self.carta_inactiva)
+
+        response = self.client.get(self.url_consultar)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()['cartas_activas']), 1)
+        self.assertEqual(response.json()['total_cartas_activas'], 1)
+        self.assertEqual(response.json()['cartas_activas'][0]['nombre'], 'Delantero para añadir')
