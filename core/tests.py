@@ -664,3 +664,25 @@ class PruebasAPIEquipo(TestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertIn('usuario no existe', response.json()['mensaje'])
+
+
+    def test_eliminar_equipo_200_ok(self):
+        """
+        Prueba que DELETE /equipo/eliminar/<id>/
+        borra el equipo de un usuario existente.
+        """
+        response = self.client.delete(self.url_eliminar)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Equipo eliminado con éxito', response.json()['mensaje'])
+        self.assertEqual(Equipo_usuario.objects.filter(usuario=self.usuario1).count(), 0)
+
+    def test_eliminar_equipo_error_no_tiene(self):
+        """
+        Prueba que DELETE /equipo/eliminar/<id>/
+        devuelve un mensaje correcto si el usuario no tiene equipo.
+        """
+        response = self.client.delete(self.url_eliminar_fail)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('no hay ningun equipo', response.json()['mensaje'])
