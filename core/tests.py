@@ -712,3 +712,58 @@ class PruebasAPIEquipo(TestCase):
         self.assertEqual(len(response.json()['cartas_activas']), 1)
         self.assertEqual(response.json()['total_cartas_activas'], 1)
         self.assertEqual(response.json()['cartas_activas'][0]['nombre'], 'Delantero para añadir')
+
+
+    def test_anadir_carta_200_ok(self):
+        """
+        Prueba que POST /equipos/<id>/anadir_carta/ (Req7)
+        añade una carta con éxito.
+        """
+        datos_json = json.dumps({'carta_id': self.delantero_para_anadir.id})
+        response = self.client.post(self.url_anadir, data=datos_json, content_type='application/json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('añadida al equipo', response.json()['mensaje'])
+        self.assertEqual(self.equipo1.cartas.count(), 1)
+
+    def test_anadir_carta_400_duplicada(self):
+        """
+        Prueba que la vista (Req7)
+        devuelve un error 400 si la carta ya está en el equipo.
+        """
+        self.equipo1.cartas.add(self.delantero_para_anadir)
+
+        datos_json = json.dumps({'carta_id': self.delantero_para_anadir.id})
+        response = self.client.post(self.url_anadir, data=datos_json, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('carta ya existe', response.json()['error'])
+
+    def test_anadir_carta_400_limite_posicion(self):
+        """
+        Prueba que la vista (Req7 / Req3.1)
+        devuelve un error 400 si se supera el límite de posición.
+        """
+        self.equipo1.cartas.add(self.porteros[0], self.porteros[1], self.porteros[2])
+        self.assertEqual(self.equipo1.cartas.filter(posicion='POR').count(), 3)
+
+        datos_json = json.dumps({'carta_id': self.porteros[3].id})
+        response = self.client.post(self.url_anadir, data=datos_json, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Límite de Porteros alcanzado', response.json()['error'])
+
+    def test_anadir_carta_400_limite_total(self):
+        """
+        Prueba que la vista (Req7)
+        devuelve un error 400 si se supera el límite de 25 cartas.
+        """
+        self.equipo1.cartas.set(self.cartas_para_llenar)
+        self.assertEqual(self.equipo1.cartas.filter(activo=True).count(), 25)
+
+        # Usamos un portero que sabemos que no está en la lista de 25
+        datos_json = json.dumps({'carta_id': self.porteros[3].id})
+        response = self.client.post(self.url_anadir, data=datos_json, content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('máximo de 25 cartas', response.json()['error'])
