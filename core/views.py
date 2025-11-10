@@ -667,7 +667,7 @@ def anadir_carta_a_equipo(request, equipo_id):
         if conteo_actual_tipo >= limite_para_este_tipo:
             return JsonResponse({
                 'error': f'Límite de {tipo_carta_nueva}s alcanzado.',
-                'mensaje': f'Ya tienes {conteo_actual_tipo} de {limite_para_este_tipo} (máximo) permitidos.'
+                'mensaje': f'Ya tienes {conteo_actual_tipo} de {limite_para_este_tipo} (máximjsono) permitidos.'
             }, status=400)
 
         # Si todas las validaciones pasan, añadimos la carta a la relación
@@ -686,3 +686,74 @@ def anadir_carta_a_equipo(request, equipo_id):
                             status=400)
     except Exception as e:
         return JsonResponse({'error': f'Ha ocurrido un error inesperado: {str(e)}'}, status=500)
+
+@csrf_exempt
+def calcular_media_equipo(request, equipo_id):
+
+        if request.method != 'GET':
+            return JsonResponse({'error': 'Este endpoint solo soporta peticiones GET'}, status=405)
+
+        try:
+
+            equipo = Equipo_usuario.objects.get(pk=equipo_id)
+
+            cartas_activas =equipo.cartas.filter(activo=True)
+
+            if not cartas_activas.exists():
+                return JsonResponse({'media': 0, 'mensaje': f'No hay jugadores'})
+
+
+            porteros_cantidad = equipo.cartas.filter(posicion='POR').count()
+
+            conteo_total = equipo.cartas.filter(activo=True).count()
+
+
+            if ((conteo_total < 11) or (porteros_cantidad < 2)):
+                return JsonResponse({'No es posible realizar el cálculo'})
+
+            if conteo_total == 0:
+                return 0
+
+            suma_puntuaciones = 0
+
+            for carta in cartas_activas:
+                suma_puntuaciones += carta.puntuacion_total
+
+            media = suma_puntuaciones / conteo_total
+
+
+
+            if (0 <= media <= 19):
+
+                equipo.puntos = 1
+
+            elif (20 <= media <= 39):
+
+                equipo.puntos = 2
+
+            elif (40 <= media <= 59):
+
+                equipo.puntos = 3
+
+            elif (60 <= media <= 79):
+
+                equipo.puntos = 4
+
+            elif (80 <= media <= 100):
+
+                equipo.puntos = 5
+
+
+            #equipo.save(update_field=['media']) se hace con esto pero no me funciona
+            #equipo.save(update_field=['puntos'])
+
+            return JsonResponse({
+                'Media Global': media,
+                'Numero Jugadores': conteo_total,
+                'Estrellas': equipo.puntos
+            }, status=200)
+
+        except Equipo_usuario.DoesNotExist:
+            return JsonResponse({'error': 'El equipo no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': f'Error inesperado: {str(e)}'}, status=500)

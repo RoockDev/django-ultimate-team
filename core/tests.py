@@ -767,3 +767,9 @@ class PruebasAPIEquipo(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('máximo de 25 cartas', response.json()['error'])
+
+    # EXAMEN
+
+    #def test_calcular_media_equipo_200_ok(self):
+
+

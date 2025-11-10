@@ -1,7 +1,8 @@
+from wsgiref.validate import validator
+
 from django.db.models import CASCADE
 from django.db import models
 from django.core.validators import MaxValueValidator,MinValueValidator
-
 
 class Pais(models.Model):
     nombre = models.CharField(max_length=100,unique=True,verbose_name="País")
@@ -147,6 +148,8 @@ class Equipo_usuario(models.Model):
     nombre = models.CharField(max_length=100,verbose_name="Nombre Equipo")
     fecha_creacion = models.DateField(auto_now_add=True)
     cartas = models.ManyToManyField(Carta_jugador)
+    puntos = models.IntegerField(default=0, verbose_name="Puntos en Clasificación")
+    media = models.IntegerField(default=0, verbose_name="Media del equipo", validators=[MinValueValidator(0), MaxValueValidator(100)])
 
     def __str__(self):
         return self.nombre
@@ -184,13 +187,4 @@ class Equipo_usuario(models.Model):
 
 
         return (True, "Plantilla validada")
-
-
-
-
-
-
-
-
-
 
