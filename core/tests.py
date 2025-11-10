@@ -767,3 +767,51 @@ class PruebasAPIEquipo(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('máximo de 25 cartas', response.json()['error'])
+
+class testDeExamen(TestCase):
+
+    def setUP(self):
+        pais_est = Pais.objects.create(nombre="País Stats")
+        liga_est = Liga.objects.create(nombre="Liga Stats")
+        club_est = Club.objects.create(
+            nombre="CLub estats",
+            pais=pais_est,
+            liga=liga_est
+        )
+
+        usuario_est = Usuario.objects.create(username='test_status_user')
+        self.equipo_prueba = Equipo_usuario.objects.create(
+            usuario=usuario_est,
+            nombre="Equipo Stats"
+        )
+
+        carta1 = Carta_jugador.objects.create(
+            nombre="Jugador 1", pais=pais_est, liga=liga_est, club=club_est,
+            posicion='DC', puntuacion_total=50, activo=True
+        )
+        carta2 = Carta_jugador.objects.create(
+            nombre="Jugador 2", pais=pais_est, liga=liga_est, club=club_est,
+            posicion='MC', puntuacion_total=50, activo=True
+        )
+        carta3 = Carta_jugador.objects.create(
+            nombre="Jugador 3", pais=pais_est, liga=liga_est, club=club_est,
+            posicion='DFC', puntuacion_total=50, activo=True
+        )
+
+        carta_inactiva = Carta_jugador.objects.create(
+            nombre="Jugador Inactivo", pais=pais_est, liga=liga_est, club=club_est,
+            posicion='POR', puntuacion_total=99, activo=False  # Esta carta no debe contar
+        )
+
+        self.equipo_prueba.cartas.set([carta1, carta2, carta3, carta_inactiva])
+
+    def test_obtener_stats(self):
+        url = f'/api/equipo/{self.equipo_prueba.id}/estadisticas/'
+        response = self.client.get(url) #esto para cogerlo
+        self.assertEqual(response.status_code,200)
+        datos_json = response.json()
+
+        #comprueb total que sean 3  y no 4 cartas
+        self.assertEqual(datos_json['total_cartas_activas'],3)
+        self.assertEqual(datos_json['media_puntuacion_total'],50)
+        self.assertEqual(datos_json['equipo_id'],self.equipo_prueba.id)

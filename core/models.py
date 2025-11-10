@@ -2,6 +2,8 @@ from django.db.models import CASCADE
 from django.db import models
 from django.core.validators import MaxValueValidator,MinValueValidator
 
+from core.views import estrellas_equipo, media_equipo
+
 
 class Pais(models.Model):
     nombre = models.CharField(max_length=100,unique=True,verbose_name="País")
@@ -147,6 +149,16 @@ class Equipo_usuario(models.Model):
     nombre = models.CharField(max_length=100,verbose_name="Nombre Equipo")
     fecha_creacion = models.DateField(auto_now_add=True)
     cartas = models.ManyToManyField(Carta_jugador)
+    puntuacion_total = models.IntegerField(default=0)
+    estrellas = models.IntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        total_estrellas = estrellas_equipo(self.id)
+        media = media_equipo(self.id)
+        self.puntuacion_total = media
+        self.estrellas = total_estrellas
+        super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.nombre

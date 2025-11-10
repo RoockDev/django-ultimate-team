@@ -19,5 +19,6 @@ urlpatterns = [
    path('equipo/asignar/<int:usuario_id>/',views.asignar_equipo_a_usuario),
    path('equipo/eliminar/<int:usuario_id>/',views.eliminar_equipo_de_usuario),
    path('equipo/consultar/<int:usuario_id>/', views.consultar_equipo_usuario),
-   path('equipos/<int:equipo_id>/anadir_carta/', views.anadir_carta_a_equipo)
+   path('equipos/<int:equipo_id>/anadir_carta/', views.anadir_carta_a_equipo),
+   path('equipo/<int:equipo_id>/estadisticas/', views.obtener_estadisticas_equipo),
 ]

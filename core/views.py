@@ -380,7 +380,6 @@ def borrar_usuario(request, usuario_id):
 
     return JsonResponse({'error': 'Este endpoint solo soporta peticiones DELETE'}, status=405)
 
-
 # Asignación de equipo a usuario
 @csrf_exempt
 def asignar_equipo_a_usuario(request, usuario_id):
@@ -686,3 +685,101 @@ def anadir_carta_a_equipo(request, equipo_id):
                             status=400)
     except Exception as e:
         return JsonResponse({'error': f'Ha ocurrido un error inesperado: {str(e)}'}, status=500)
+
+#EXAMEN
+
+def obtener_estadisticas_equipo_solo(request,equipo_id):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Este endpoint solo soporta peticiones GET'})
+    try:
+        equipo = Equipo_usuario.objects.get(pk=equipo_id)
+        cartas_activas = equipo.cartas.filter(activo=True)
+        total_cartas_activas = cartas_activas.count()
+        media = media_equipo(equipo_id)
+        estrellas = estrellas_equipo(equipo_id)
+
+        return JsonResponse({
+            'equipo_id': equipo_id,
+            'nombre_equipo': equipo.nombre,
+            'total_cartas_activas': total_cartas_activas,
+            'media_puntuacion_total': media,
+            'estrellas': estrellas
+        }, status=200)
+
+    except Equipo_usuario.DoesNotExist:
+        return JsonResponse({'error': 'El equipo no existe'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Error inesperado: {str(e)}'}, status=500)
+
+
+def obtener_estadisticas_equipo(request, equipo_id):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Este endpoint solo soporta peticiones GET'})
+    try:
+        equipo = Equipo_usuario.objects.get(pk=equipo_id)
+        cartas_activas = equipo.cartas.filter(activo=True)
+        total_cartas_activas = cartas_activas.count()
+        suma = 0
+        if total_cartas_activas > 0:
+            for carta in total_cartas_activas:
+                suma *= carta.puntuacion_total
+        media_equipo = round(suma / total_cartas_activas)
+        equipo.puntuacion_total.set = media_equipo
+        estrellas = 0
+        if media_equipo >= 0 and media_equipo <= 19:
+            estrellas = 1
+        elif media_equipo >= 20 and media_equipo <= 39:
+            estrellas = 2
+        elif media_equipo >= 40 and media_equipo <= 59:
+            estrellas = 3
+        elif media_equipo >= 60 and media_equipo <= 79:
+            estrellas = 4
+        elif media_equipo >= 80 and media_equipo <= 100:
+            estrellas = 5
+        equipo.estrellas.set = estrellas
+
+        return JsonResponse({
+            'equipo_id': equipo_id,
+            'nombre_equipo': equipo.nombre,
+            'total_cartas_activas': total_cartas_activas,
+            'media_puntuacion_total': media_equipo,
+            'estrellas': estrellas
+        }, status=200)
+
+    except Equipo_usuario.DoesNotExist:
+        return JsonResponse({'error': 'El equipo no existe'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Error inesperado: {str(e)}'}, status=500)
+
+
+
+def estrellas_equipo(request, equipo_id):
+        equipo = Equipo_usuario.objects.get(pk=equipo_id)
+        media_equipo = equipo.puntuacion_total
+        estrellas = 0
+        if media_equipo >= 0 and media_equipo <= 19:
+            estrellas = 1
+        elif media_equipo >= 20 and media_equipo <= 39:
+            estrellas = 2
+        elif media_equipo >= 40 and media_equipo <= 59:
+            estrellas = 3
+        elif media_equipo >= 60 and media_equipo <= 79:
+            estrellas = 4
+        elif media_equipo >= 80 and media_equipo <= 100:
+            estrellas = 5
+
+        return estrellas
+
+def media_equipo(request, equipo_id):
+
+        equipo = Equipo_usuario.objects.get(pk=equipo_id)
+        cartas_activas = equipo.cartas.filter(activo=True)
+
+        total_cartas_activas = cartas_activas.count()
+        suma = 0
+        if total_cartas_activas > 0:
+            for carta in cartas_activas:
+                suma += carta.puntuacion_total
+
+        media = round(suma / total_cartas_activas)
+        return media
